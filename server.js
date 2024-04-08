@@ -8,7 +8,6 @@ require("dotenv").config();
 const PORT = process.env.PORT || 8080;
 const client_id = process.env.C_ID || "err";
 const client_secret = process.env.C_SECRET || "err";
-// console.log(process.env);
 
 //!middleware
 app.use(cors());
