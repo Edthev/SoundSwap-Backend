@@ -10,3 +10,4 @@ node_modules
 *.sw?
 .history
 .env
+.env_sample1
