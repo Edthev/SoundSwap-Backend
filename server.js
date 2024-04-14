@@ -4,6 +4,9 @@ const crypto = require("crypto");
 const cors = require("cors");
 const querystring = require("querystring");
 const cookieParser = require("cookie-parser");
+// const knex = require("knex");
+// const knexConfig = require("./knex.js");
+// const db = knex(knexConfig);
 require("dotenv").config();
 
 const PORT = process.env.PORT || 8889;
@@ -86,8 +89,13 @@ app.get("/callback", function (req, res) {
 
             // use the access token to access the Spotify Web API
             request.get(options, function (error, response, body) {
-               console.log("Connection successful signed into:", body.email, "ID:", body.id);
-               console.log(body);
+               console.log(
+                  "Connection successful signed into:",
+                  body.email,
+                  "URL:",
+                  "https://open.spotify.com/user/" + body.id
+               );
+               //  console.log(body);
             });
 
             res.redirect("http://localhost:3000/login");
