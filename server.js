@@ -4,25 +4,21 @@ const crypto = require("crypto");
 const cors = require("cors");
 const querystring = require("querystring");
 const cookieParser = require("cookie-parser");
-// const knex = require("knex");
-// const knexConfig = require("./knex.js");
-// const db = knex(knexConfig);
+const knex = require("knex");
+const knexConfig = require("./knexfile.js");
+const db = knex(knexConfig);
 require("dotenv").config();
 
 const PORT = process.env.PORT || 8889;
 const client_id = process.env.CLIENT_ID || null;
 const client_secret = process.env.CLIENT_SECRET || null;
-// const redirect_uri = `http://localhost:${PORT}/callback`;
-// const OLDredirect_uri = http://localhost:8888/callback;
 const redirect_uri = process.env.FRONT_END_URL;
-console.log("redirect_uri", redirect_uri);
 const stateKey = "spotify_auth_state";
 const app = express();
 
 const generateRandomString = (length) => {
    return crypto.randomBytes(60).toString("hex").slice(0, length);
 };
-
 app.use(express.static("./publicCopy")).use(cors()).use(cookieParser());
 
 app.get("/login", function (req, res) {
@@ -78,8 +74,11 @@ app.get("/callback", function (req, res) {
 
       request.post(authOptions, function (error, response, body) {
          if (!error && response.statusCode === 200) {
+            const now = new Date();
             const access_token = body.access_token,
-               refresh_token = body.refresh_token;
+               refresh_token = body.refresh_token,
+               expiry = body.expires_in;
+            const expiration = now.valueOf() + expiry - 200;
 
             const options = {
                url: "https://api.spotify.com/v1/me",
@@ -89,17 +88,44 @@ app.get("/callback", function (req, res) {
 
             // use the access token to access the Spotify Web API
             request.get(options, function (error, response, body) {
-               console.log(
-                  "Connection successful signed into:",
-                  body.email,
-                  "URL:",
-                  "https://open.spotify.com/user/" + body.id
-               );
-               //  console.log(body);
-            });
+               console.log();
+               console.log("Connection successful signed into:", body.email);
+               console.log("URL:", "https://open.spotify.com/user/" + body.id);
+               console.log();
+               // console.log(body);
 
+               // add user to database
+               db("users")
+                  .select("spotify_id")
+                  .where("spotify_id", body.id)
+                  .then((existingUser) => {
+                     if (existingUser.length === 0) {
+                        return db("users")
+                           .insert({
+                              spotify_id: body.id,
+                              access_token: access_token,
+                              refresh_token: refresh_token,
+                              token_expiry: expiry,
+                              session: generateRandomString(8),
+                           })
+                           .then(() => {
+                              console.log(`User ${body.id} created`, true);
+                           })
+                           .catch((error) => {
+                              console.error("Error inserting user data:", error);
+                           });
+                     } else {
+                        console.log(`User ${body.id} exists`, false);
+                        console.log();
+                        return db("users").where("spotify_id", body.id).update({
+                           access_token: access_token,
+                           refresh_token: refresh_token,
+                        });
+                     }
+                  });
+            });
+            // redirect back to user
             res.redirect("http://localhost:3000/login");
-            // we can also pass the token to the browser to make requests from there
          } else {
             // TODO break this to test invalid token
             res.redirect(
