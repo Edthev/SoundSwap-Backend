@@ -8,6 +8,7 @@ exports.up = function (knex) {
       table.string("spotify_id").notNullable();
       table.string("access_token").notNullable();
       table.string("refresh_token").notNullable();
+      table.string("google_access_token").notNullable();
       table.string("token_expiry").notNullable();
       table.string("session").notNullable();
       table.timestamp("created_at").defaultTo(knex.fn.now());
