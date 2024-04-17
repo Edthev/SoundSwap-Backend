@@ -20,29 +20,32 @@ const callback_google = async (req, res) => {
    res.clearCookie(google_stateKey);
    const url = "https://oauth2.googleapis.com/token";
    const options = {
-      code,
+      code: code,
       client_id: google_client_id,
       client_secret: google_client_secret,
       redirect_uri: google_redirect_uri,
       grant_type: "authorization_code",
    };
    try {
+      console.log("Post request for tokens...");
       const response = await axios.post(url, qs.stringify(options), {
          headers: {
             "Content-Type": "application/x-www-form-urlencoded",
          },
       });
+
+      console.log("Request returned");
       const { refresh_token, access_token, expires_in } = response.data;
 
       try {
-         const deleteID = "315uf6v5siftzd5pcx7pugnztgjq";
+         const deleteID = "317ysrmblnathrkebehqlhnyq4eq";
          // // TODO check if spotify or youtube is signed in
          // // TODO make google session and add it to existing user
          // // TODO add tokens to existing user
          console.log("Fetching google user");
          const dbRes = await db("users")
-            .select("spotify_id")
-            .where("spotify_id", deleteID)
+            .select("*")
+            .where("spotify_id", deleteID || null)
             .then(async (existingUser) => {
                if (existingUser.length === 0) {
                   return await db("users")
@@ -79,6 +82,11 @@ const callback_google = async (req, res) => {
          console.log("Google access_token.length", access_token ? access_token.length : 0);
       } catch (err) {
          console.log("err:", err, "err");
+         res.json({
+            Error: err.message,
+            Stack: err.stack,
+            All: err,
+         });
       }
    } catch (err) {
       console.error(err, `\n`, `\n`, "Failed to get Google token");
