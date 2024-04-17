@@ -5,6 +5,7 @@ const querystring = require("querystring");
 const spotify_client_id = process.env.SPOTIFY_CLIENT_ID || null;
 const spotify_redirect_uri = process.env.SPOTIFY_CALLBACK_URL;
 
+// TODO change endpoint path to /login/spotify
 const loginSpotify = (req, res) => {
    console.log("Connected to /login");
 

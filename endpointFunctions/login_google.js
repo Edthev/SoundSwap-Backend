@@ -1,7 +1,5 @@
 const crypto = require("crypto");
 require("dotenv").config();
-// TODO querystring is DEPRECATED
-const querystring = require("querystring");
 
 const google_client_id = process.env.GOOGLE_CLIENT_ID || null;
 const google_client_secret = process.env.GOOGLE_CLIENT_SECRET || null;
@@ -19,7 +17,8 @@ const callback_google = (req, res) => {
    res.cookie("google_session_token", state);
    console.log("Google session created");
 
-   const google_scope = "https://www.googleapis.com/auth/youtube";
+   const google_scope =
+      "https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtubepartner https://www.googleapis.com/auth/youtube.force-ssl";
    console.log("Redirecting to Google for auth token");
 
    res.redirect(
