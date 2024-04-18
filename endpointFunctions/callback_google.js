@@ -48,6 +48,7 @@ const callback_google = async (req, res) => {
             .where("spotify_id", deleteID || null)
             .then(async (existingUser) => {
                if (existingUser.length === 0) {
+                  console.log("Making new user");
                   return await db("users")
                      .insert({
                         google_access_token: access_token,
@@ -70,12 +71,12 @@ const callback_google = async (req, res) => {
                   });
                   console.log("resDb", resDb);
                   console.log("Redirecting to merge page");
-                  // res.redirect(`http://localhost:3000/merge?check`);
-                  res.json({
-                     Google_Callback: "Success",
-                     Auth_Code: code,
-                     response: response.data,
-                  });
+                  res.redirect(`http://localhost:3000/merge`);
+                  // res.json({
+                  //    Google_Callback: "Success",
+                  //    Auth_Code: code,
+                  //    response: response.data,
+                  // });
                }
             });
          console.log("dbRes", dbRes);

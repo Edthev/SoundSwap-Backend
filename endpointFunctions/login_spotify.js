@@ -20,7 +20,7 @@ const loginSpotify = (req, res) => {
    console.log("Spotify session created");
 
    const scope =
-      "user-read-private user-read-email playlist-read-private playlist-modify-private playlist-modify-public";
+      "user-read-private user-library-read user-read-email playlist-read-private playlist-modify-private playlist-modify-public";
    console.log("Redirecting to Spotify for auth token");
    res.redirect(
       "https://accounts.spotify.com/authorize?" +

@@ -14,6 +14,8 @@ const refresh_token_spotify = require("./endpointFunctions/refresh_token_spotify
 const createYoutubePlaylist = require("./endpointFunctions/playlist_google");
 const getSpotifyPlaylistSongs = require("./endpointFunctions/getSpotifyPlaylistSongs");
 const searchYoutubeIDs = require("./endpointFunctions/searchYoutubeId");
+const playlist_spotify = require("./endpointFunctions/playlist_spotify");
+const addSpotifySongsToYoutube = require("./endpointFunctions/addSpotifySongsToYoutube");
 
 const PORT = process.env.PORT || 8888;
 
@@ -27,8 +29,10 @@ const app = express();
 app.use(express.static("./publicCopy")).use(cors()).use(cookieParser());
 
 // app.get("/", checkSessionMiddleware, index);
-app.get("/", checkSessionMiddleware, getUserData_spotify);
-app.post("/");
+// app.get("/", checkSessionMiddleware, getUserData_spotify);
+app.get("/", getSpotifyPlaylistSongs); /*(req, res) => {
+   res.json({ Creator: "Edward", Welcome: "SoundSwap" });
+});*/
 // TODO change frontend so this can be login_spotify
 app.get("/login", loginSpotify);
 app.get("/login_google", googleLogin);
@@ -43,15 +47,18 @@ app.get("/error", error);
 app.get("/refresh_token", checkSessionMiddleware, refresh_token_spotify);
 // TODO change code so this is playlist_spotify
 // app.get("/playlist", spotify_playlists);
+app.get("playlists/spotify", playlist_spotify);
+app.get("/songs/spotify", getSpotifyPlaylistSongs);
+app.get("/songs/youtube", addSpotifySongsToYoutube);
 app.get("/playlist", createYoutubePlaylist);
-app.get("/playlist/spotify/songs/:playlistID", getSpotifyPlaylistSongs);
-app.get("/playlist/youtube/add?:playlistID?VideoID", getSpotifyPlaylistSongs);
+// app.get("/playlist/spotify/songs/:playlistID", getSpotifyPlaylistSongs);
+// app.get("/playlist/youtube/add?:playlistID?VideoID", getSpotifyPlaylistSongs);
 
 app.get("/search/youtube?:videoName", searchYoutubeIDs);
 
 // TODO update pathing
-app.get("/playlists/spotify", getSpotifyPlaylistSongs);
-app.get("/playlists/create/google", getSpotifyPlaylistSongs);
+app.get("/playlists/spotify", playlist_spotify);
+// app.get("/playlists/create/google", getSpotifyPlaylistSongs);
 
 console.log("Listening on http://localhost:" + PORT);
 app.listen(PORT);
