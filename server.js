@@ -1,164 +1,89 @@
-// const express = require("express");
-// const app = express();
-// const cors = require("cors");
-// const path = require("path");
-// require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
 
-// //!
-// const PORT = process.env.PORT || 8080;
-// const client_id = process.env.C_ID || "err";
-// const client_secret = process.env.C_SECRET || "err";
-// const redirect_url = process.env.REDIRECT_URL || "err";
+const googleLogin = require("./endpointFunctions/login_google");
+const loginSpotify = require("./endpointFunctions/login_spotify");
+const callbackSpotify = require("./endpointFunctions/callback_spotify");
+const callbackGoogle = require("./endpointFunctions/callback_google");
+const checkSessionMiddleware = require("./endpointFunctions/checkSessionMiddleware");
+const index = require("./endpointFunctions/index");
+const getUserData_spotify = require("./endpointFunctions/getUserData_spotify");
+const error = require("./endpointFunctions/error");
+const refresh_token_spotify = require("./endpointFunctions/refresh_token_spotify");
+const createYoutubePlaylist = require("./endpointFunctions/playlist_google");
+const getSpotifyPlaylistSongs = require("./endpointFunctions/getSpotifyPlaylistSongs");
+const searchYoutubeIDs = require("./endpointFunctions/searchYoutubeId");
+const playlist_spotify = require("./endpointFunctions/playlist_spotify");
+const addSpotifySongsToYoutube = require("./endpointFunctions/addSpotifySongsToYoutube");
 
-// //!middleware
-// app.use(cors());
-// app.use(express.json());
+const PORT = process.env.PORT || 8888;
 
-// //! basic routes for the APIs
-// app.use("/", (_req, res) => {
-//    res.status(200).json({
-//       Project: "SoundSwap",
-//       Description: "Swap Playlists Across Platforms!",
-//       Creator: "Edward Vargas",
-//       ID: client_id,
-//       Secret: client_secret,
-//       Callback: redirect_url,
-//    });
-// });
+const spotify_client_secret = process.env.SPOTIFY_CLIENT_SECRET || null;
+const spotify_client_id = process.env.SPOTIFY_CLIENT_ID || null;
+const spotify_redirect_uri = process.env.SPOTIFY_CALLBACK_URL;
+const spotify_stateKey = "spotify_auth_state";
 
-// app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+const app = express();
+// TODO remove this static webpage
+app.use(express.static("./publicCopy")).use(cors()).use(cookieParser());
 
-var express = require("express");
-var request = require("request");
-var cors = require("cors");
-var querystring = require("querystring");
-var cookieParser = require("cookie-parser");
-require("dotenv").config();
+// app.get("/", checkSessionMiddleware, index);
+// app.get("/", checkSessionMiddleware, getUserData_spotify);
+app.get("/", getSpotifyPlaylistSongs); /*(req, res) => {
+   res.json({ Creator: "Edward", Welcome: "SoundSwap" });
+});*/
+// TODO change frontend so this can be login_spotify
+app.get("/login", loginSpotify);
+app.get("/login_google", googleLogin);
 
-var PORT = process.env.PORT || 8080;
-var client_id = process.env.C_ID;
-var client_secret = process.env.C_SECRET;
-var redirect_uri = process.env.REDIRECT_URL;
+// TODO change other code so this can be callback_spotify
+app.get("/callback", callbackSpotify);
+app.get("/google_callback", callbackGoogle);
 
-var stateKey = "spotify_auth_state";
+app.get("/error", error);
 
-var app = express();
+// TODO change code so this is refresh_token_spotify
+app.get("/refresh_token", checkSessionMiddleware, refresh_token_spotify);
+// TODO change code so this is playlist_spotify
+// app.get("/playlist", spotify_playlists);
+app.get("playlists/spotify", playlist_spotify);
+app.get("/songs/spotify", getSpotifyPlaylistSongs);
+app.get("/songs/youtube", addSpotifySongsToYoutube);
+app.get("/playlist", createYoutubePlaylist);
+// app.get("/playlist/spotify/songs/:playlistID", getSpotifyPlaylistSongs);
+// app.get("/playlist/youtube/add?:playlistID?VideoID", getSpotifyPlaylistSongs);
 
-app.use(express.static(__dirname + "/public"))
-   .use(cors())
-   .use(cookieParser());
+app.get("/search/youtube?:videoName", searchYoutubeIDs);
 
-app.get("/login", function (req, res) {
-   res.cookie(stateKey);
+// TODO update pathing
+app.get("/playlists/spotify", playlist_spotify);
+// app.get("/playlists/create/google", getSpotifyPlaylistSongs);
 
-   // your application requests authorization
-   var scope =
-      "user-read-private user-read-email playlist-read-private playlist-read-collaborative playlist-modify-private user-read-playback-state playlist-modify-public";
-   res.redirect(
-      "https://accounts.spotify.com/authorize?" +
-         querystring.stringify({
-            response_type: "code",
-            client_id: client_id,
-            scope: scope,
-            redirect_uri: redirect_uri,
-         })
-   );
-});
-
-app.get("/callback", function (req, res) {
-   // your application requests refresh and access tokens
-   // after checking the state parameter
-   console.log(req.query);
-   var code = req.query.code || null;
-   // TODO fix protection against attacks such as cross-site request forgery
-   /*
-   //    if (state === null || state !== storedState) {
-   //       res.redirect(
-   //          "/#" +
-   //             querystring.stringify({
-   //                error: "state_mismatch",
-   //             })
-   //       );
-   //    } else {
-    */
-   var authOptions = {
-      url: "https://accounts.spotify.com/api/token",
-      form: {
-         code: code,
-         redirect_uri: redirect_uri,
-         grant_type: "authorization_code",
-      },
-      headers: {
-         "content-type": "application/x-www-form-urlencoded",
-         Authorization:
-            "Basic " + new Buffer.from(client_id + ":" + client_secret).toString("base64"),
-      },
-      json: true,
-   };
-
-   request.post(authOptions, function (error, response, body) {
-      if (!error && response.statusCode === 200) {
-         var access_token = body.access_token,
-            refresh_token = body.refresh_token;
-
-         var options = {
-            url: "https://api.spotify.com/v1/me",
-            headers: { Authorization: "Bearer " + access_token },
-            json: true,
-         };
-
-         // use the access token to access the Spotify Web API
-         request.get(options, function (error, response, body) {
-            console.log(body);
-         });
-
-         // we can also pass the token to the browser to make requests from there
-         res.redirect(
-            "/#" +
-               querystring.stringify({
-                  access_token: access_token,
-                  refresh_token: refresh_token,
-               })
-         );
-      } else {
-         res.redirect(
-            "/#" +
-               querystring.stringify({
-                  error: "invalid_token",
-               })
-         );
-      }
-   });
-   //    }
-});
-
-app.get("/refresh_token", function (req, res) {
-   var refresh_token = req.query.refresh_token;
-   var authOptions = {
-      url: "https://accounts.spotify.com/api/token",
-      headers: {
-         "content-type": "application/x-www-form-urlencoded",
-         Authorization:
-            "Basic " + new Buffer.from(client_id + ":" + client_secret).toString("base64"),
-      },
-      form: {
-         grant_type: "refresh_token",
-         refresh_token: refresh_token,
-      },
-      json: true,
-   };
-
-   request.post(authOptions, function (error, response, body) {
-      if (!error && response.statusCode === 200) {
-         var access_token = body.access_token,
-            refresh_token = body.refresh_token;
-         res.send({
-            access_token: access_token,
-            refresh_token: refresh_token,
-         });
-      }
-   });
-});
-
-console.log("Listening on", PORT);
+console.log("Listening on http://localhost:" + PORT);
 app.listen(PORT);
+
+// TODO TOP PRIORiTY: use selected song and send a request to backend to get songs (limit to 20 for now) call the yt music api with those names and get the result of the ids then add those ids to the google playlist after making one also grab the playlist name so they can be the same
+// for listing
+const google_playlist_url = "https://www.googleapis.com/youtube/v3/playlists";
+const optionsList = {
+   part: "snippet",
+   mine: true,
+   maxResults: 5,
+};
+// insert creates a new playlist
+/*
+new scopes to add:
+Scope
+https://www.googleapis.com/auth/youtubepartner
+https://www.googleapis.com/auth/youtube
+https://www.googleapis.com/auth/youtube.force-ssl
+
+*/
+const optionsInsert = {
+   part: "snippet",
+   mine: true,
+   maxResults: 5,
+};
+
+// PlaylistItems: insert
